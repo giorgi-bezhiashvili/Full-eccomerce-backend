@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# IDE / REST Client temporary files
+test.rest
+
+#enviroment
+.env
+
+#certs
+cert.pem
+key.pem
