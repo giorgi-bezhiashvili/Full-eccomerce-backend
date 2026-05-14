@@ -2,12 +2,14 @@ const mongoose = require("mongoose")
 const { productConnection } = require("../config/db")
 
 const productSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    price: { type: Number, required: true },
-    stock: { type: Number, default: 1 },
-    userName: {type:String , required:true}
-})
-
+  name: { type: String, required: true },
+  description: String,
+  price: { type: Number, required: true },
+  stock: { type: Number, default: 0 },
+  images: [String],
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  ratings: { average: Number, count: Number },
+}, { timestamps: true });
 const Product = productConnection.model("Product", productSchema)
 
 module.exports = Product

@@ -23,6 +23,7 @@
     "mongoose": "^9.6.2",
     "nodemon": "^3.1.14",
     "passport": "^0.7.0",
-    "passport-google-oauth2": "^0.2.0"
+    "passport-google-oauth2": "^0.2.0",
+    "stripe": "^22.1.1"
   }
 }
