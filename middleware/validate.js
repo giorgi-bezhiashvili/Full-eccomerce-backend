@@ -10,11 +10,10 @@ const loginSchema = joi.object({
     password: joi.string().required()
 })
 const productScema = joi.object({
-        userName: joi.string().required(),
-        price: joi.number().required(),
-        stock: joi.number(),
-        name: joi.string().required()
-})
+    name: joi.string().min(2).max(100).required(),
+    price: joi.number().positive().required(),
+    stock: joi.number().integer().min(0).default(0)
+});
 function validate(schema) {
     return (req, res, next) => {
         if (!req.body) return res.status(400).json({ message: "Request body is missing" })

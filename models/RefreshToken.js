@@ -7,6 +7,6 @@ const tokenSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now, expires: "7d" }
 })
 
-const RefreshToken = authConnection.model("RefreshToken", tokenSchema)
+const RefreshToken = mongoose.model("RefreshToken", tokenSchema)
 
 module.exports = RefreshToken

@@ -10,6 +10,6 @@ const productSchema = new mongoose.Schema({
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   ratings: { average: Number, count: Number },
 }, { timestamps: true });
-const Product = productConnection.model("Product", productSchema)
+const Product = mongoose.model("Product", productSchema)
 
 module.exports = Product

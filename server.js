@@ -9,9 +9,9 @@ const passport = require("./config/passport")
 const { userConnection, authConnection, productConnection } = require("./config/db")
 const authRoutes = require("./routes/authRoutes")
 const productRoutes = require("./routes/productRoutes")
- 
+const connectDB = require("./config/db");
 const app = express()
- 
+const cartRoutes = require(`./routes/cartRoutes`)
 const options = {
     key: fs.readFileSync("key.pem"),
     cert: fs.readFileSync("cert.pem")
@@ -33,19 +33,20 @@ app.use(helmet({
  
 app.use("/", authRoutes)
 app.use("/", productRoutes)
- 
-const connections = [userConnection, authConnection, productConnection]
- 
-Promise.all(connections.map(conn => new Promise((resolve, reject) => {
-    conn.on("connected", () => resolve())
-    conn.on("error", (err) => reject(err))
-})))
-.then(() => {
-    console.log("All three databases connected successfully.")
-    https.createServer(options, app).listen(3000, () => {
-        console.log("HTTPS server running at: https://localhost:3000")
+app.use("/", cartRoutes)
+connectDB()
+    .then(() => {
+        console.log("Database connected successfully.");
+        https.createServer(options, app).listen(3000, () => {
+            console.log("HTTPS server running at: https://localhost:3000");
+        });
     })
-})
-.catch(err => {
-    console.error("Database connection error:", err)
-})
+    .catch(err => {
+        console.error("Critical Database Error:");
+        if (!process.env.MONGO_URI) {
+            console.error("Error: MONGO_URI is undefined. Check that your .env file is in the root folder.");
+        } else {
+            console.error(err.message);
+        }
+        process.exit(1);
+    });
