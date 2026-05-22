@@ -17,11 +17,12 @@ router.get("/products", async (req, res) => {
 router.post("/products", authenticateToken, async (req, res) => {
   try {
     const { name, price, stock } = req.body
+    const sellerId = req.user.id || req.user._id;
     const newProduct = new Product({
       name,
       price,
       stock,
-      userName: req.user.userName
+      seller: sellerId
     })
     await newProduct.save()
     res.status(201).json(newProduct)

@@ -12,17 +12,26 @@ const productRoutes = require("./routes/productRoutes")
 const connectDB = require("./config/db");
 const app = express()
 const cartRoutes = require(`./routes/cartRoutes`)
+const paymentRoutes = require(`./routes/paymentRoutes`)
 const options = {
     key: fs.readFileSync("key.pem"),
     cert: fs.readFileSync("cert.pem")
 }
  
 app.disable("x-powered-by")
-app.use(express.json({ limit: "10kb" }))
 app.use((req, res, next) => {
-    if (req.body) req.body = sanitize(req.body)
-    next()
-})
+    if (req.originalUrl === '/webhook') {
+        next();
+    } else {
+        express.json({ limit: "10kb" })(req, res, next);
+    }
+});app.use((req, res, next) => {
+    if (req.originalUrl === '/webhook') {
+        return next();
+    }
+    if (req.body) req.body = sanitize(req.body);
+    next();
+});
 app.use(hpp())
 app.use(passport.initialize())
 app.use(helmet({
@@ -34,6 +43,7 @@ app.use(helmet({
 app.use("/", authRoutes)
 app.use("/", productRoutes)
 app.use("/", cartRoutes)
+app.use(`/`, paymentRoutes)
 connectDB()
     .then(() => {
         console.log("Database connected successfully.");
