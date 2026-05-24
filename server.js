@@ -20,18 +20,24 @@ const options = {
  
 app.disable("x-powered-by")
 app.use((req, res, next) => {
-    if (req.originalUrl === '/webhook') {
-        next();
-    } else {
-        express.json({ limit: "10kb" })(req, res, next);
+    const contentType = req.headers['content-type'];
+    
+    // 1. Bypass body parsers completely for file uploads and webhooks
+    if (contentType && contentType.includes('multipart/form-data')) {
+        return next();
     }
-});app.use((req, res, next) => {
     if (req.originalUrl === '/webhook') {
         return next();
     }
-    if (req.body) req.body = sanitize(req.body);
-    next();
+
+    // 2. Safely sequence text parsers for all other incoming requests
+    express.json({ limit: "10kb" })(req, res, (err) => {
+        if (err) return next(err); // Handle any JSON parsing errors
+        express.urlencoded({ extended: true })(req, res, next);
+    });
 });
+
+
 app.use(hpp())
 app.use(passport.initialize())
 app.use(helmet({
