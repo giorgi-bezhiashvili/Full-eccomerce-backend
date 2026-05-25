@@ -8,6 +8,7 @@ const Cart = require(`../models/cart`);
 const multer = require(`multer`)
 const path= require(`path`)
 const fs = require(`fs`)
+const { scanFile } = require("../utils/virusScan")
 
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -73,6 +74,21 @@ router.post("/products",
           req.files.forEach(f => fs.unlink(f.path, err => {}));
         }
         return res.status(400).json({ error: "Missing required fields: name, price" });
+      }
+      
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          const stripMetadataResult = await stripFileMetadata(file.path);
+          if (!stripMetadataResult) {
+            req.files.forEach(f => fs.unlink(f.path, err => {}));
+            return res.status(400).json({ error: "Failed to process image metadata" });
+          }
+          const scanResult = await scanFile(file.path);
+          if (!scanResult.safe) {
+            req.files.forEach(f => fs.unlink(f.path, err => {}));
+            return res.status(400).json({ error: "File contains malware", viruses: scanResult.viruses });
+          }
+        }
       }
       
       const sellerId = req.user.id || req.user._id;
