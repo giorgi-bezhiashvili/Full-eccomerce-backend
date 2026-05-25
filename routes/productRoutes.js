@@ -8,8 +8,7 @@ const Cart = require(`../models/cart`);
 const multer = require(`multer`)
 const path= require(`path`)
 const fs = require(`fs`)
-const { scanFile } = require("../utils/virusScan")
-
+const { scanFile, stripFileMetadata } = require("../utils/virusScan");
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
 
 const storage = multer.diskStorage({
@@ -77,19 +76,20 @@ router.post("/products",
       }
       
       if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          const stripMetadataResult = await stripFileMetadata(file.path);
-          if (!stripMetadataResult) {
-            req.files.forEach(f => fs.unlink(f.path, err => {}));
-            return res.status(400).json({ error: "Failed to process image metadata" });
-          }
-          const scanResult = await scanFile(file.path);
-          if (!scanResult.safe) {
-            req.files.forEach(f => fs.unlink(f.path, err => {}));
-            return res.status(400).json({ error: "File contains malware", viruses: scanResult.viruses });
-          }
-        }
-      }
+  for (const file of req.files) {
+    // scanFile handles verification AND metadata stripping internally!
+    const scanResult = await scanFile(file.path); 
+    
+    if (!scanResult.safe) {
+      // Clean up all uploaded files if one fails
+      req.files.forEach(f => fs.unlink(f.path, () => {}));
+      return res.status(400).json({ 
+        error: "Invalid file or processing failed", 
+        reason: scanResult.reason 
+      });
+    }
+  }
+}
       
       const sellerId = req.user.id || req.user._id;
       const filePaths = req.files ? req.files.map(file => file.path) : [];
