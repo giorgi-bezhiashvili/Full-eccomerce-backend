@@ -7,19 +7,31 @@ const { authenticateToken } = require(`../middleware/auth`)
 const Cart = require(`../models/cart`);
 const multer = require(`multer`)
 const path= require(`path`)
+const fs = require(`fs`)
+
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'public/uploads/')
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname)
+    const random = Math.random().toString(36).substring(7)
+    const ext = path.extname(file.originalname)
+    cb(null, `${Date.now()}-${random}${ext}`)
   }
 })
 
+const fileFilter = (req, file, cb) => {
+  if (!ALLOWED_MIMES.includes(file.mimetype)) {
+    return cb(new Error('Only image files are allowed'), false)
+  }
+  cb(null, true)
+}
 
 const upload = multer({ 
   storage: storage,
+  fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit per file
     files: 12                
@@ -29,7 +41,6 @@ router.get("/products", async (req, res) => {
   try {
     const products = await Product.find()
     
-    // Transform photo paths to URLs accessible from frontend
     const productsWithUrls = products.map(product => ({
       ...product.toObject(),
       photos: product.photos.map(photo => `/uploads/${path.basename(photo)}`)
@@ -44,38 +55,28 @@ router.get("/products", async (req, res) => {
 
 
 router.post("/products", 
-  (req, res, next) => { 
-    console.log("1. Request hit the route container"); 
-    next(); 
-  }, 
   authenticateToken, 
-  (req, res, next) => { 
-    console.log("2. Passed authenticateToken middleware"); 
-    next(); 
-  }, 
   (req, res, next) => {
     upload.array('photos', 12)(req, res, function (err) {
       if (err) {
-        console.error("----> Multer parsing error caught:", err.message);
-        return res.status(400).json({ error: "Multer upload error", details: err.message });
+        return res.status(400).json({ error: "Upload failed", details: err.message });
       }
-      console.log("3. Passed Multer file upload cleanly");
       next();
     });
   }, 
   async (req, res) => {
     try {
-      console.log("4. Inside Try Block. Body received:", req.body);
-      console.log("5. Total files received:", req.files ? req.files.length : 0);
-      
       const { name, price, stock } = req.body;
       if (!name || !price) {
-        console.log("5a. Failed text validation - name or price missing");
-        return res.status(400).json({ error: "Required fields are missing from req.body" });
+        // Clean up uploaded files on validation error
+        if (req.files) {
+          req.files.forEach(f => fs.unlink(f.path, err => {}));
+        }
+        return res.status(400).json({ error: "Missing required fields: name, price" });
       }
       
       const sellerId = req.user.id || req.user._id;
-      const filePaths = req.files.map(file => file.path);
+      const filePaths = req.files ? req.files.map(file => file.path) : [];
       
       const newProduct = new Product({
         name,
@@ -85,14 +86,14 @@ router.post("/products",
         photos: filePaths
       });
       
-      console.log("6. Saving product to MongoDB...");
       await newProduct.save();
-      console.log("7. Saved successfully!");
-      
       res.status(201).json(newProduct);
     } catch (err) {
-      console.error("Catch block caught a database/server error:", err);
-      res.status(500).send("Server error");
+      
+      if (req.files) {
+        req.files.forEach(f => fs.unlink(f.path, err => {}));
+      }
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
@@ -101,19 +102,28 @@ router.delete(`/product/:id`, authenticateToken, async (req, res) => {
     const productId = req.params.id
     const product = await Product.findById(productId)
     if (!product) {
-      return res.status(404).send(`Product doesn't exists`)
+      return res.status(404).json({ error: "Product not found" })
     }
-    if (product.user.toString() !== req.user.id) {
+    if (product.seller.toString() !== req.user.id && product.seller.toString() !== req.user._id) {
       return res.status(403).json({ error: "Unauthorized: You can only delete your own products" })
     }
+    
+    // Delete uploaded files from disk
+    if (product.photos && product.photos.length > 0) {
+      product.photos.forEach(photoPath => {
+        fs.unlink(photoPath, (err) => {
+          if (err) console.error(`Failed to delete file: ${photoPath}`);
+        });
+      });
+    }
+    
     await Product.findByIdAndDelete(productId)
     await Cart.updateMany(
       { "items.product": productId },
       { $pull: { items: { product: productId } } }
     )
-    res.status(200).send(`Item delated succesfully`)
+    res.status(200).json({ message: "Product deleted successfully" })
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" })
   }
 })

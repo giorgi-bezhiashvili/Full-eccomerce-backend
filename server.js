@@ -50,7 +50,6 @@ app.use(helmet({
     xDownloadOptions: false,
 }))
 
-// Serve static files from public folder (for images/photos)
 app.use(express.static("public"))
  
 app.use("/", authRoutes)
