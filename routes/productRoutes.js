@@ -6,34 +6,43 @@ const { validate, productSchema } = require("../middleware/validate")
 const { authenticateToken } = require(`../middleware/auth`)
 const Cart = require(`../models/cart`);
 const multer = require(`multer`)
+const path= require(`path`)
 
-// 1. Configure how files are saved (with their real extensions)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'public/uploads/')
   },
   filename: function (req, file, cb) {
-    // Keeps unique filenames so they don't overwrite each other
     cb(null, Date.now() + '-' + file.originalname)
   }
 })
 
-// 2. Initialize a SINGLE upload middleware instance with limits
+
 const upload = multer({ 
   storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit per file
-    files: 12                  // Allow up to 12 files
+    files: 12                
   }
 })
 router.get("/products", async (req, res) => {
   try {
     const products = await Product.find()
-    res.json(products)
+    
+    // Transform photo paths to URLs accessible from frontend
+    const productsWithUrls = products.map(product => ({
+      ...product.toObject(),
+      photos: product.photos.map(photo => `/uploads/${path.basename(photo)}`)
+    }))
+    
+    res.json(productsWithUrls)
   } catch (err) {
     res.status(500).send("Server error")
   }
 })
+
+
+
 router.post("/products", 
   (req, res, next) => { 
     console.log("1. Request hit the route container"); 
@@ -108,4 +117,5 @@ router.delete(`/product/:id`, authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Server error" })
   }
 })
+
 module.exports = router

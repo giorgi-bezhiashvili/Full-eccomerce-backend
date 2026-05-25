@@ -30,9 +30,8 @@ app.use((req, res, next) => {
         return next();
     }
 
-    // 2. Safely sequence text parsers for all other incoming requests
     express.json({ limit: "10kb" })(req, res, (err) => {
-        if (err) return next(err); // Handle any JSON parsing errors
+        if (err) return next(err);
         express.urlencoded({ extended: true })(req, res, next);
     });
 });
@@ -42,9 +41,17 @@ app.use(hpp())
 app.use(passport.initialize())
 app.use(helmet({
     xPoweredBy: false,
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            imgSrc: ["'self'", "data:"]
+        }
+    },
     xDownloadOptions: false,
 }))
+
+// Serve static files from public folder (for images/photos)
+app.use(express.static("public"))
  
 app.use("/", authRoutes)
 app.use("/", productRoutes)
