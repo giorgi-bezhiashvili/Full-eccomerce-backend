@@ -44,13 +44,62 @@ Before running this project, ensure you have the following installed on your loc
    ```bash
    npm install
    
-3. **Configure env variables
-  ```env
-MONGO_URI=your_mongodb_connection_string
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_signing_secret
-ACCES_TOKEN_SECRET=your_jwt_signing_token_secret
-REFRESH_TOKEN_SECRET = your_jwt_refreshtoken_secret
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root directory of the project and populate it with your configuration values:
+   ```env
+   PORT=5000
+   MONGO_URI=your_mongodb_connection_string
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_signing_secret
+   ACCESS_TOKEN_SECRET=your_jwt_signing_token_secret
+   REFRESH_TOKEN_SECRET=your_jwt_refreshtoken_secret
+
+4. **Start the development server:**
+   ```bash
+   npm run devStart
+   
+🛣️ Core API Endpoints (Snapshot)
+🔐 Authentication & Users
+POST /api/auth/register - Register a new user profile.
+
+POST /api/auth/login - Authenticate a user and receive credentials.
+
+📦 Products
+GET /api/products - Fetch all products (supports filtering/pagination).
+
+GET /api/products/:id - Fetch details for a specific item.
+
+POST /api/products - Create a new product (Admin authorization required).
+
+🛒 Shopping Cart & Orders
+GET /api/cart - View items currently saved in user's cart.
+
+POST /api/cart/add - Append an item to the current checkout cart.
+
+POST /api/orders/checkout - Initialize the Stripe Checkout session.
+
+🔒 Security Practices Implemented
+Password Salting: Using bcryptjs to securely process user credentials, ensuring passwords are never stored as plain text.
+
+Environment Isolation: Keeping critical infrastructure variables (Database connections, Stripe API Keys) safely decoupled from code execution flows via .env.
+
+Fail-Safe Middleware: Graceful error catching and centralized response orchestration to prevent raw system errors from exposing back-end internals.
+
+🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check out the issues page if you want to help make this project even better.
+
+Fork the Project
+
+Create your Feature Branch (git checkout -b feature/AmazingFeature)
+
+Commit your Changes (git commit -m 'Add some AmazingFeature')
+
+Push to the Branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+📝 License
+Distributed under the MIT License.
 
 
 
